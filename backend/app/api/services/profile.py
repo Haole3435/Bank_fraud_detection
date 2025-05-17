@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from backend.app.auth.models import User
 from backend.app.core.logging import get_logger
 from backend.app.core.tasks.image_upload import upload_profile_image_task
 from backend.app.user_profile.models import Profile
@@ -166,4 +167,26 @@ async def update_profile_image_url(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"status": "error", "message": "Failed to update profile image url"},
+        )
+
+
+async def get_user_with_profile(user_id: uuid.UUID, session: AsyncSession) -> User:
+    try:
+        statement = select(User).where(User.id == user_id)
+        result = await session.exec(statement)
+        user = result.first()
+
+        if user:
+            await session.refresh(user, ["profile"])
+            return user
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"status": "error", "message": "User not found"},
+            )
+    except Exception as e:
+        logger.error(f"Error fetching user with profile: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"status": "error", "message": "Failed to fetch user with profile."},
         )
