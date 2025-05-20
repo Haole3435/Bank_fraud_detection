@@ -10,6 +10,7 @@ from sqlmodel import Column, Field, Relationship
 from backend.app.auth.schema import BaseUserSchema, RoleChoicesSchema
 
 if TYPE_CHECKING:
+    from backend.app.next_of_kin.models import NextOfKin
     from backend.app.user_profile.models import Profile
 
 
@@ -54,6 +55,7 @@ class User(BaseUserSchema, table=True):
             "lazy": "selectin",
         },
     )
+    next_of_kins: list["NextOfKin"] = Relationship(back_populates="user")
 
     @computed_field
     @property
