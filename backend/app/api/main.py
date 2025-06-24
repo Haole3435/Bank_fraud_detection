@@ -13,6 +13,7 @@ from backend.app.api.routes.bank_account import activate as bank_account_activat
 from backend.app.api.routes.bank_account import create as create_bank_account
 from backend.app.api.routes.bank_account import (
     deposit,
+    statement,
     transaction_history,
     transfer,
     withdrawal,
@@ -47,3 +48,4 @@ api_router.include_router(deposit.router)
 api_router.include_router(transfer.router)
 api_router.include_router(withdrawal.router)
 api_router.include_router(transaction_history.router)
+api_router.include_router(statement.router)
