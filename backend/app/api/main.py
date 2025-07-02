@@ -18,6 +18,11 @@ from backend.app.api.routes.bank_account import (
     transfer,
     withdrawal,
 )
+from backend.app.api.routes.card import activate as activate_card
+from backend.app.api.routes.card import block
+from backend.app.api.routes.card import create as create_card
+from backend.app.api.routes.card import delete as delete_card
+from backend.app.api.routes.card import topup
 from backend.app.api.routes.next_of_kin import all
 from backend.app.api.routes.next_of_kin import create as create_next_of_kin
 from backend.app.api.routes.next_of_kin import delete
@@ -49,3 +54,8 @@ api_router.include_router(transfer.router)
 api_router.include_router(withdrawal.router)
 api_router.include_router(transaction_history.router)
 api_router.include_router(statement.router)
+api_router.include_router(create_card.router)
+api_router.include_router(activate_card.router)
+api_router.include_router(block.router)
+api_router.include_router(topup.router)
+api_router.include_router(delete_card.router)
