@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class MLSettings(BaseSettings):
     MLFLOW_TRACKING_URI: str = os.environ.get(
-        "MLFLOW_TRACKING_URI", "http://mlflow:5000"
+        "MLFLOW_TRACKING_URI", "http://mlflow:4000"
     )
     MLFLOW_EXPERIMENT_NAME: str = "fraud_detection"
     MLFLOW_MODEL_REGISTRY_NAME: str = "fraud_detection_models"
