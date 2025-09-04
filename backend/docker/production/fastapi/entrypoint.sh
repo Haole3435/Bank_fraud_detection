@@ -10,8 +10,9 @@ python <<END
 import sys
 import time
 import psycopg
+import os
 
-MAX_WAIT_SECONDS = 30
+MAX_WAIT_SECONDS = 60
 RETRY_INTERVAL = 5
 start_time = time.time()
 
@@ -35,15 +36,26 @@ while True:
     break
 
   if time.time() - start_time > MAX_WAIT_SECONDS:
-    sys.stderr.write("Error: Database connection could not be established after 30 seconds\n")
+    sys.stderr.write("Error: Database connection could not be established after 60 seconds\n")
     sys.exit(1)
 
   sys.stderr.write(f"Waiting {RETRY_INTERVAL} seconds before retrying...\n")
   time.sleep(RETRY_INTERVAL)
 END
 
+
 echo >&2 'PostgreSQL is ready to accept connections'
 
-alembic upgrade head
+echo "Running database migrations..."
+if alembic current 2>/dev/null; then
+  echo "Alembic already initialized, running upgrade only"
+  alembic upgrade head
+else
+  echo "Initializing Alembic and running migrations"
+  alembic revision --autogenerate -m "Initial migration"
+  alembic upgrade head
+fi
+
+>&2 echo 'Migrations applied'
 
 exec "$@"
