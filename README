@@ -32,7 +32,6 @@ For an approachable explanation of Gradient Boosting as an ensemble that iterati
 ---
 
 ## Repository Layout
-
 ```
 .
 ├─ deploy.sh                # One‑command remote deployment via rsync + SSH
@@ -43,9 +42,9 @@ For an approachable explanation of Gradient Boosting as an ensemble that iterati
 ├─ how_it_works.md          # End‑to‑end pipeline and deployment modes (manual/auto)
 ├─ ml-pipeline.md           # (If present) additional pipeline notes
 ├─ postman-prescript.js     # Pre‑request script to auto‑add Idempotency-Key header
-└─ (src/, models/, etc.)    # Your app and ML code (structure may vary)
+└─ (backend/, migration/, etc.)    # Your app and ML code (structure)
 ```
-Key files referenced in this README: `deploy.sh` fileciteturn0file0, `explanation.md` fileciteturn0file1, `gradient-boosting.md` fileciteturn0file2, `how_it_works.md` fileciteturn0file3, `limitations/GB rationale` fileciteturn0file4, and `postman-prescript.js` fileciteturn0file5.
+
 
 > **Note:** `local.yml` and `production.yml` are Compose descriptors you’ll run with `docker compose -f ...`. Their exact services/ports depend on your project definition.
 
@@ -66,12 +65,12 @@ Key files referenced in this README: `deploy.sh` fileciteturn0file0, `e
 
 1. **Install/Update Conda (recommended: Miniconda).**  
 2. **Create and activate an environment.** Replace the Python version as needed:
-   ```bash
+   ```
    conda create -n fraudml python=3.10 -y
    conda activate fraudml
    ```
 3. **Install dependencies.** If you have a `requirements.txt` or `pyproject.toml`:
-   ```bash
+   ```
    # If using requirements.txt
    pip install -r requirements.txt
 
@@ -83,18 +82,18 @@ Key files referenced in this README: `deploy.sh` fileciteturn0file0, `e
    - If you provide a CLI or app server entrypoint, run it here (e.g., `python -m your_module`).
    - Use this Conda env for model experimentation and scripts.
 6. **Deactivate when finished:**
-   ```bash
+   ```
    conda deactivate
    ```
 
 ### Option B — Local (Docker Compose)
 
 Build and start services defined in `local.yml`:
-```bash
+```
 docker compose -f local.yml up --build
 ```
 Stop them (and remove containers) when done:
-```bash
+```
 docker compose -f local.yml down
 ```
 
@@ -102,26 +101,25 @@ docker compose -f local.yml down
 
 1. **Ensure remote host is ready** (Docker installed, SSH key access).  
 2. **Set the droplet/server IP address in your shell** (required by the script):
-   ```bash
+   ```
    export DIGITAL_OCEAN_IP_ADDRESS=YOUR.SERVER.IP
    ```
 3. **Run the deploy script from the repo root:**
-   ```bash
+   ```
    bash deploy.sh
    ```
    What it does, in brief:
    - Archives the **`main`** branch into a tarball.  
    - Uploads the archive via `rsync` to `/tmp/project.tar` on the server.  
-   - SSHes in, extracts to a temporary directory, brings down existing containers via the production Compose file, prunes unused Docker artifacts, and brings the new stack up with `--build -d --remove-orphans`. fileciteturn0file0
+   - SSHes in, extracts to a temporary directory, brings down existing containers via the production Compose file, prunes unused Docker artifacts, and brings the new stack up with `--build -d --remove-orphans`. 
 
-> **Tip:** The script performs local and remote clean‑ups using shell traps so temp artifacts don’t linger. fileciteturn0file0
 
 ---
 
 ## Environment Variables
 
 Create a `.env` (or export in your shell) with values your services need. For deployment, you **must** set:
-- `DIGITAL_OCEAN_IP_ADDRESS` — The remote server IP read by `deploy.sh`. fileciteturn0file0
+- `DIGITAL_OCEAN_IP_ADDRESS` — The remote server IP read by `deploy.sh`. 
 
 Service‑specific variables (DB URLs, API keys, etc.) depend on your app code and Compose files.
 
@@ -132,7 +130,7 @@ Service‑specific variables (DB URLs, API keys, etc.) depend on your app code a
 The service supports two model deployment modes:
 
 - **Manual deployment:** Select and deploy a model by ID via `/api/v1/ml/deploy`.  
-- **Auto‑deployment:** Automatically select the best performing model above threshold with `/api/v1/ml/auto-deploy`. fileciteturn0file3
+- **Auto‑deployment:** Automatically select the best performing model above threshold with `/api/v1/ml/auto-deploy`. 
 
 Your application will also have endpoints to score transactions and to review flagged cases, according to your implementation.
 
@@ -147,30 +145,5 @@ Your application will also have endpoints to score transactions and to review fl
 
 ---
 
-## Using Postman Safely (Idempotency)
 
-To prevent duplicate side effects during repeated requests (retries), add a **Pre‑request Script** that sets a unique `Idempotency-Key` header for each call. Use the provided script:
 
-- Open Postman → your request → **Pre‑request Script** tab → paste the content of `postman-prescript.js`.  
-- It generates a UUIDv4 and upserts the `Idempotency-Key` header automatically. fileciteturn0file5
-
----
-
-## Operations: Retraining & Auto‑Deployment
-
-- **Flag review loop:** Analysts review high‑risk transactions. Confirmed outcomes are written back into the training set for the next cycle. fileciteturn0file3  
-- **Periodic retraining:** Models are retrained with fresh data and compared; better performers are deployed manually or via the auto‑deploy endpoint. fileciteturn0file3
-
----
-
-## Troubleshooting
-
-- **`Permission denied (publickey)` during deploy:** Ensure your local SSH key is authorized on the server and you can `ssh root@YOUR.SERVER.IP` without a password.
-- **Compose file not found:** Run commands from the repo root and pass `-f local.yml` or `-f production.yml` as shown.
-- **`/tmp/project.tar` not found on server:** The deploy script uses `rsync` to write there; verify `DIGITAL_OCEAN_IP_ADDRESS` is set and reachable. fileciteturn0file0
-- **Containers won’t rebuild:** Use `--build` and consider pruning unused layers as the script does (`docker system prune -af`). fileciteturn0file0
-
----
-
-### Thanks
-If you have additional scripts (training, evaluation, or service entrypoints), add a short “How to Run” note for each to keep teammates productive.
