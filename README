@@ -1,4 +1,4 @@
-# Fraud Detection Service 
+---
 
 ## Table of Contents
 1. [Architecture & Concepts](#architecture--concepts)  
@@ -13,137 +13,203 @@
 7. [Machine Learning Details](#machine-learning-details)  
 8. [Using Postman Safely (Idempotency)](#using-postman-safely-idempotency)  
 9. [Operations: Retraining & Auto‑Deployment](#operations-retraining--auto-deployment)  
-10. [Troubleshooting](#troubleshooting)
+10. [Troubleshooting](#troubleshooting)  
+11. [Conda Cheatsheet](#conda-cheatsheet)
 
 ---
 
 ## Architecture & Concepts
 
 ### System Flow
-At a high level, transactions are ingested, features are extracted, a deployed model assigns a fraud risk score, and transactions above a threshold are flagged for human review. Confirmed outcomes feed back into training data, and better models are periodically deployed. fileciteturn0file3
+Transactions are ingested, features are extracted, a deployed model assigns a fraud risk score, and transactions above a threshold are flagged for human review. Confirmed outcomes feed back into training data; better models are periodically deployed.
 
 ### Risk Scoring & Thresholding
-Risk analysis considers factors including amount, time, frequency, pattern, and velocity with defined weights; high combined risk can trigger automatic flags, temporary blocking, and escalation for review. The system also keeps recent history for pattern detection and auditability. fileciteturn0file1
+Risk analysis considers factors like **amount, time, frequency, pattern,** and **velocity** with defined weights. High combined risk can trigger automatic flags, temporary blocking, and escalation to human review. Recent history is retained for pattern detection and audit.
 
-### Why ML (Gradient Boosting) vs Rules
-Rule‑only systems are hard to maintain, don’t adapt quickly to new patterns, and struggle with complex interactions. Gradient Boosting addresses these gaps by handling imbalanced data, surfacing feature importance, and capturing nonlinear patterns in structured transaction data. fileciteturn0file4  
-For an approachable explanation of Gradient Boosting as an ensemble that iteratively corrects previous errors, see the included primer. fileciteturn0file2
+### Why Gradient Boosting + Rules
+Rules are interpretable but brittle. Gradient Boosting captures nonlinear interactions, handles imbalance, and surfaces feature importance. A hybrid system uses **rules** for guardrails and **ML** for nuanced ranking.
 
 ---
 
 ## Repository Layout
-```
-.
-├─ deploy.sh                # One‑command remote deployment via rsync + SSH
-├─ local.yml                # Docker Compose for local development (services defined here)
-├─ production.yml           # Docker Compose for production on the remote host
-├─ explanation.md           # System breakdown: risk factors, scoring, thresholds, responses
-├─ gradient-boosting.md     # Plain‑English intro to Gradient Boosting
-├─ how_it_works.md          # End‑to‑end pipeline and deployment modes (manual/auto)
-├─ ml-pipeline.md           # (If present) additional pipeline notes
-├─ postman-prescript.js     # Pre‑request script to auto‑add Idempotency-Key header
-└─ (backend/, migration/, etc.)    # Your app and ML code (structure)
-```
 
+.
+├─ deploy.sh # One‑command remote deployment via rsync + SSH
+├─ local.yml # Docker Compose for local development
+├─ production.yml # Docker Compose for production on the remote host
+├─ explanation.md # Risk factors, scoring, thresholds, responses
+├─ gradient-boosting.md # Intro to Gradient Boosting
+├─ how_it_works.md # End‑to‑end pipeline and deployment modes
+├─ ml-pipeline.md # Additional pipeline notes (if present)
+├─ postman-prescript.js # Pre‑request script to auto‑add Idempotency‑Key
+└─ src/, models/, etc. # Your app and ML code
+
+yaml
+Always show details
+
+Copy code
 
 > **Note:** `local.yml` and `production.yml` are Compose descriptors you’ll run with `docker compose -f ...`. Their exact services/ports depend on your project definition.
 
 ---
 
+
 ## Prerequisites
 
-- **Git** (to fetch sources)
-- **Conda** (Miniconda/Anaconda) for a reproducible Python environment
-- **Docker & Docker Compose** (for containerized local/production runs)
-- **SSH access** to your remote host (for production deployment with `deploy.sh`)
+- **Git**
+- **Conda** (Miniconda/Anaconda) for reproducible Python env
+- **Docker & Docker Compose**
+- **SSH access** to a remote host (for production deployment)
 
 ---
+
 
 ## Quickstart
 
 ### Option A — Local (Conda)
 
-1. **Install/Update Conda (recommended: Miniconda).**  
-2. **Create and activate an environment.** Replace the Python version as needed:
-   ```
-   conda create -n fraudml python=3.10 -y
-   conda activate fraudml
-   ```
-3. **Install dependencies.** If you have a `requirements.txt` or `pyproject.toml`:
-   ```
-   # If using requirements.txt
-   pip install -r requirements.txt
+1) **Install Conda** (Miniconda recommended).  
+2) **Create and activate an environment** (adjust Python version as needed):
+```bash
+conda create -n fraudml python=3.10 -y
+conda activate fraudml
+Install dependencies (choose what your repo uses):
 
-   # Or, if using Poetry
-   # pip install poetry && poetry install
-   ```
-4. **Configure environment variables.** See [Environment Variables](#environment-variables).  
-5. **Run your app or notebooks.**  
-   - If you provide a CLI or app server entrypoint, run it here (e.g., `python -m your_module`).
-   - Use this Conda env for model experimentation and scripts.
-6. **Deactivate when finished:**
-   ```
-   conda deactivate
-   ```
+bash
+Always show details
 
-### Option B — Local (Docker Compose)
+Copy code
+# If using requirements.txt
+pip install -r requirements.txt
 
-Build and start services defined in `local.yml`:
-```
+# Or, if using Poetry
+# pip install poetry && poetry install
+Configure environment variables. See Environment Variables.
+
+Run your app / notebooks in this environment (e.g., python -m your_module or jupyter lab).
+
+Deactivate when finished:
+
+bash
+Always show details
+
+Copy code
+conda deactivate
+Option B — Local (Docker Compose)
+Build and start services defined in local.yml:
+
+bash
+Always show details
+
+Copy code
 docker compose -f local.yml up --build
-```
-Stop them (and remove containers) when done:
-```
+Stop (and remove) when done:
+
+bash
+Always show details
+
+Copy code
 docker compose -f local.yml down
-```
+Option C — Production Deploy (Remote Server)
+Ensure the remote host is ready (Docker installed, your SSH key authorized).
 
-### Option C — Production Deploy (Remote Server)
+Export the server IP (required by the script):
 
-1. **Ensure remote host is ready** (Docker installed, SSH key access).  
-2. **Set the droplet/server IP address in your shell** (required by the script):
-   ```
-   export DIGITAL_OCEAN_IP_ADDRESS=YOUR.SERVER.IP
-   ```
-3. **Run the deploy script from the repo root:**
-   ```
-   bash deploy.sh
-   ```
-   What it does, in brief:
-   - Archives the **`main`** branch into a tarball.  
-   - Uploads the archive via `rsync` to `/tmp/project.tar` on the server.  
-   - SSHes in, extracts to a temporary directory, brings down existing containers via the production Compose file, prunes unused Docker artifacts, and brings the new stack up with `--build -d --remove-orphans`. 
+bash
+Always show details
 
+Copy code
+export DIGITAL_OCEAN_IP_ADDRESS=YOUR.SERVER.IP
+Run the deploy script from the repo root:
 
----
+bash
+Always show details
 
-## Environment Variables
+Copy code
+bash deploy.sh
+What the script does: packages the main branch into a tarball, uploads it with rsync to /tmp/project.tar on the server, SSHes in, extracts to a temp dir, brings down existing containers via production.yml, prunes unused Docker artifacts, and brings the new stack up with --build -d --remove-orphans. Temporary artifacts are cleaned up automatically.
 
-Create a `.env` (or export in your shell) with values your services need. For deployment, you **must** set:
-- `DIGITAL_OCEAN_IP_ADDRESS` — The remote server IP read by `deploy.sh`. 
+Environment Variables
+Create a .env or export variables in your shell. Examples:
 
-Service‑specific variables (DB URLs, API keys, etc.) depend on your app code and Compose files.
+dotenv
+Always show details
 
----
+Copy code
+# Required by deploy.sh
+DIGITAL_OCEAN_IP_ADDRESS=203.0.113.10
 
-## API Overview
+# App defaults (examples — adapt to your code)
+APP_PORT=8080
+MODEL_DIR=./models
+DB_URL=postgresql://user:pass@localhost:5432/frauddb
+Compose automatically loads a .env in the working directory. You can also pass env files with --env-file.
 
-The service supports two model deployment modes:
+API Overview
+Typical endpoints in this project include (adjust to your implementation):
 
-- **Manual deployment:** Select and deploy a model by ID via `/api/v1/ml/deploy`.  
-- **Auto‑deployment:** Automatically select the best performing model above threshold with `/api/v1/ml/auto-deploy`. 
+POST /api/v1/score — score a transaction (returns risk score + decision)
 
-Your application will also have endpoints to score transactions and to review flagged cases, according to your implementation.
+POST /api/v1/ml/deploy — deploy a model by ID (manual mode)
 
----
+POST /api/v1/ml/auto-deploy — pick and deploy the best candidate automatically
 
-## Machine Learning Details
+GET /api/v1/health — health check
 
-- **Rule engine vs ML:** motivates moving beyond rules to a Gradient Boosting model that adapts to new patterns and handles complex, nonlinear interactions. fileciteturn0file4
-- **Gradient Boosting (plain‑English):** an ensemble of learners that iteratively correct one another’s errors to improve predictions. fileciteturn0file2
-- **Risk factors & weights:** amount (30%), frequency (20%), pattern (20%), velocity (20%), time (10%); combined risk above thresholds triggers blocking, review, and logging. fileciteturn0file1
-- **End‑to‑end pipeline:** from transaction ingestion and feature extraction through scoring, human review, feedback, retraining, and (auto)deployment. fileciteturn0file3
+Document any additional routes in your codebase (auth, review workflows, auditing, etc.).
 
----
+Machine Learning Details
+Hybrid approach: rules for immediate guardrails; Gradient Boosting for ranking nuanced patterns.
 
+Feature set: amount, frequency, velocity, time‑of‑day, merchant history, device/IP reputation (examples — align with your features).
 
+Thresholding: map score to actions (allow, review, block). Persist decisions for auditing and training.
 
+Lifecycle: ingestion → feature extraction → scoring → human review → feedback loop → retraining → (auto)deployment.
+
+Using Postman Safely (Idempotency)
+To avoid duplicate side effects on retries, set a unique Idempotency-Key per request.
+
+Open Postman → Pre-request Script tab.
+
+Paste the contents of postman-prescript.js.
+
+The script generates a UUIDv4 and ensures the Idempotency-Key header is present for each request.
+
+Operations: Retraining & Auto‑Deployment
+Feedback loop: analysts review flagged transactions; confirmed outcomes enrich the training set.
+
+Retraining cadence: retrain periodically or when drift is detected; compare candidates via validation metrics.
+
+Deployment: promote the best model manually or trigger the auto-deploy endpoint.
+
+Troubleshooting
+Permission denied (publickey) during deploy → ensure your SSH key is authorized; ssh user@SERVER_IP should work.
+
+Compose file not found → run commands from the repo root and pass -f local.yml or -f production.yml.
+
+/tmp/project.tar not found on server → network or IP not set; verify DIGITAL_OCEAN_IP_ADDRESS.
+
+Containers won’t rebuild → use --build and consider pruning: docker system prune -af.
+
+Port already in use → adjust APP_PORT or service port mappings in Compose files.
+
+Conda Cheatsheet
+bash
+Always show details
+
+Copy code
+# Create a new env with a specific Python
+conda create -n fraudml python=3.10 -y
+
+# Activate / deactivate
+conda activate fraudml
+conda deactivate
+
+# List / remove envs
+conda env list
+conda remove -n fraudml --all
+
+# Export / reproduce
+conda env export > environment.yml
+conda env create -f environment.yml
