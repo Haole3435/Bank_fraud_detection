@@ -1,51 +1,51 @@
-# NextGenBank - Transaction Risk Analysis API
+# NextGenBank  Transaction Risk Analysis API
 
-This project is a FastAPI-based system designed to analyze and evaluate the risk of banking transactions in real time. It leverages Machine Learning to calculate risk scores and automatically flag suspicious transactions for further review.
+This project is a FastAPIbased system designed to analyze and evaluate the risk of banking transactions in real time. It leverages Machine Learning to calculate risk scores and automatically flag suspicious transactions for further review.
 
 ## 📜 System Overview
 The main goal of this project is to detect and prevent fraudulent activities by analyzing each transaction against multiple risk factors.
 
 ### Risk Factors
 The system evaluates transactions based on the following:
-
-- **Amount**: Evaluates both absolute and relative transaction values compared to the user's history.  
-- **Time**: Considers unusual times such as outside business hours.  
-- **Frequency**: Monitors how often a user makes transactions.  
-- **Patterns**: Detects suspicious patterns like rounded amounts or repeated transactions.  
-- **Velocity**: Tracks total transaction volume within a 24-hour period.  
-
+```
+ Amount: Evaluates both absolute and relative transaction values compared to the user's history.  
+ Time: Considers unusual times such as outside business hours.  
+ Frequency: Monitors how often a user makes transactions.  
+ Patterns: Detects suspicious patterns like rounded amounts or repeated transactions.  
+ Velocity: Tracks total transaction volume within a 24hour period.  
+```
 ### Risk Scoring System
 Each factor is assigned a risk score between 0 (low risk) and 1 (high risk). Weighted scores are combined to generate a final transaction risk score:
-
-- Amount: 30%  
-- Frequency: 20%  
-- Patterns: 20%  
-- Velocity: 20%  
-- Time: 10%  
-
+```
+ Amount: 30%  
+ Frequency: 20%  
+ Patterns: 20%  
+ Velocity: 20%  
+ Time: 10%  
+```
 Transactions with a risk score > 0.7 are automatically flagged, temporarily blocked, and forwarded for manual review.
 
 ## 🛠️ Technology Stack
 The project is built using modern technologies for performance and scalability:
-
-- **Backend**: FastAPI  
-- **Database**: PostgreSQL  
-- **Containerization**: Docker & Docker Compose  
-- **Message Broker**: RabbitMQ  
-- **Caching**: Redis  
-- **Asynchronous Tasks**: Celery & Flower  
-- **Reverse Proxy**: Traefik  
-- **Machine Learning**: MLflow, Scikit-learn  
-- **Database Migrations**: Alembic  
-
+```
+ Backend: FastAPI  
+ Database: PostgreSQL  
+ Containerization: Docker & Docker Compose  
+ Message Broker: RabbitMQ  
+ Caching: Redis  
+ Asynchronous Tasks: Celery & Flower  
+ Reverse Proxy: Traefik  
+ Machine Learning: MLflow, Scikitlearn  
+ Database Migrations: Alembic  
+```
 ## 🚀 Getting Started
 
 ### Prerequisites
 Ensure the following tools are installed:
-
-- Docker  
-- Docker Compose  
-
+```
+ Docker  
+ Docker Compose  
+```
 ### Installation
 
 Clone the repository:
@@ -73,21 +73,21 @@ make migrate
 ```
 
 ### Services URLs
-- API: [http://api.localhost](http://api.localhost)  
-- MLflow: [http://mlflow.localhost](http://mlflow.localhost)  
-- RabbitMQ Management: [http://rabbitmq.localhost](http://rabbitmq.localhost)  
-- Flower Dashboard: [http://flower.localhost](http://flower.localhost)  
+ API: [http://api.localhost](http://api.localhost)  
+ MLflow: [http://mlflow.localhost](http://mlflow.localhost)  
+ RabbitMQ Management: [http://rabbitmq.localhost](http://rabbitmq.localhost)  
+ Flower Dashboard: [http://flower.localhost](http://flower.localhost)  
 
 ## ⚙️ Usage
 
 ### Useful Make Commands
 | Command             | Description |
-|---------------------|-------------|
+|||
 | `make build`        | Build and start Docker containers for the first time. |
 | `make up`           | Start previously built services. |
 | `make down`         | Stop running containers. |
-| `make down-v`       | Stop and remove volumes (warning: this deletes data). |
-| `make nextgen-config` | View compiled Docker Compose configuration. |
+| `make downv`       | Stop and remove volumes (warning: this deletes data). |
+| `make nextgenconfig` | View compiled Docker Compose configuration. |
 | `make makemigrations` | Create a new Alembic migration file. |
 | `make migrate`      | Apply the latest database migrations. |
 | `make history`      | View Alembic migration history. |
@@ -95,13 +95,14 @@ make migrate
 
 ## 🏗️ System Architecture
 The project follows a microservices architecture managed by Docker Compose:
-
-- **Traefik**: Reverse proxy that routes requests to services based on domain names (api.localhost, mlflow.localhost, etc.).  
-- **API**: Main FastAPI service handling business logic.  
-- **PostgreSQL**: Relational database for user and transaction data.  
-- **Redis**: Used as a cache and Celery broker.  
-- **RabbitMQ**: Message broker for asynchronous service communication.  
-- **Celery (Worker & Beat)**: Executes background tasks like email sending and data processing.  
-- **Flower**: Dashboard for monitoring Celery tasks.  
-- **MLflow**: Platform to manage ML lifecycle, including experiment tracking and model deployment.  
-- **Mailpit**: Local SMTP server for capturing outgoing emails in development.  
+```
+ Traefik: Reverse proxy that routes requests to services based on domain names (api.localhost, mlflow.localhost, etc.).  
+ API: Main FastAPI service handling business logic.  
+ PostgreSQL: Relational database for user and transaction data.  
+ Redis: Used as a cache and Celery broker.  
+ RabbitMQ: Message broker for asynchronous service communication.  
+ Celery (Worker & Beat): Executes background tasks like email sending and data processing.  
+ Flower: Dashboard for monitoring Celery tasks.  
+ MLflow: Platform to manage ML lifecycle, including experiment tracking and model deployment.  
+ Mailpit: Local SMTP server for capturing outgoing emails in development.  
+```
