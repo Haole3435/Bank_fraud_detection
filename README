@@ -1,215 +1,107 @@
----
+# NextGenBank - Transaction Risk Analysis API
 
-## Table of Contents
-1. [Architecture & Concepts](#architecture--concepts)  
-2. [Repository Layout](#repository-layout)  
-3. [Prerequisites](#prerequisites)  
-4. [Quickstart](#quickstart)  
-   - [Option A — Local (Conda)](#option-a--local-conda)  
-   - [Option B — Local (Docker Compose)](#option-b--local-docker-compose)  
-   - [Option C — Production Deploy (Remote Server)](#option-c--production-deploy-remote-server)  
-5. [Environment Variables](#environment-variables)  
-6. [API Overview](#api-overview)  
-7. [Machine Learning Details](#machine-learning-details)  
-8. [Using Postman Safely (Idempotency)](#using-postman-safely-idempotency)  
-9. [Operations: Retraining & Auto‑Deployment](#operations-retraining--auto-deployment)  
-10. [Troubleshooting](#troubleshooting)  
-11. [Conda Cheatsheet](#conda-cheatsheet)
+This project is a FastAPI-based system designed to analyze and evaluate the risk of banking transactions in real time. It leverages Machine Learning to calculate risk scores and automatically flag suspicious transactions for further review.
 
----
+## 📜 System Overview
+The main goal of this project is to detect and prevent fraudulent activities by analyzing each transaction against multiple risk factors.
 
-## Architecture & Concepts
+### Risk Factors
+The system evaluates transactions based on the following:
 
-### System Flow
-Transactions are ingested, features are extracted, a deployed model assigns a fraud risk score, and transactions above a threshold are flagged for human review. Confirmed outcomes feed back into training data; better models are periodically deployed.
+- **Amount**: Evaluates both absolute and relative transaction values compared to the user's history.  
+- **Time**: Considers unusual times such as outside business hours.  
+- **Frequency**: Monitors how often a user makes transactions.  
+- **Patterns**: Detects suspicious patterns like rounded amounts or repeated transactions.  
+- **Velocity**: Tracks total transaction volume within a 24-hour period.  
 
-### Risk Scoring & Thresholding
-Risk analysis considers factors like **amount, time, frequency, pattern,** and **velocity** with defined weights. High combined risk can trigger automatic flags, temporary blocking, and escalation to human review. Recent history is retained for pattern detection and audit.
+### Risk Scoring System
+Each factor is assigned a risk score between 0 (low risk) and 1 (high risk). Weighted scores are combined to generate a final transaction risk score:
 
-### Why Gradient Boosting + Rules
-Rules are interpretable but brittle. Gradient Boosting captures nonlinear interactions, handles imbalance, and surfaces feature importance. A hybrid system uses **rules** for guardrails and **ML** for nuanced ranking.
+- Amount: 30%  
+- Frequency: 20%  
+- Patterns: 20%  
+- Velocity: 20%  
+- Time: 10%  
 
----
+Transactions with a risk score > 0.7 are automatically flagged, temporarily blocked, and forwarded for manual review.
 
-## Repository Layout
+## 🛠️ Technology Stack
+The project is built using modern technologies for performance and scalability:
 
-.
-├─ deploy.sh # One‑command remote deployment via rsync + SSH
-├─ local.yml # Docker Compose for local development
-├─ production.yml # Docker Compose for production on the remote host
-├─ explanation.md # Risk factors, scoring, thresholds, responses
-├─ gradient-boosting.md # Intro to Gradient Boosting
-├─ how_it_works.md # End‑to‑end pipeline and deployment modes
-├─ ml-pipeline.md # Additional pipeline notes (if present)
-├─ postman-prescript.js # Pre‑request script to auto‑add Idempotency‑Key
-└─ src/, models/, etc. # Your app and ML code
+- **Backend**: FastAPI  
+- **Database**: PostgreSQL  
+- **Containerization**: Docker & Docker Compose  
+- **Message Broker**: RabbitMQ  
+- **Caching**: Redis  
+- **Asynchronous Tasks**: Celery & Flower  
+- **Reverse Proxy**: Traefik  
+- **Machine Learning**: MLflow, Scikit-learn  
+- **Database Migrations**: Alembic  
 
-yaml
-Always show details
+## 🚀 Getting Started
 
-Copy code
+### Prerequisites
+Ensure the following tools are installed:
 
-> **Note:** `local.yml` and `production.yml` are Compose descriptors you’ll run with `docker compose -f ...`. Their exact services/ports depend on your project definition.
+- Docker  
+- Docker Compose  
 
----
+### Installation
 
-
-## Prerequisites
-
-- **Git**
-- **Conda** (Miniconda/Anaconda) for reproducible Python env
-- **Docker & Docker Compose**
-- **SSH access** to a remote host (for production deployment)
-
----
-
-
-## Quickstart
-
-### Option A — Local (Conda)
-
-1) **Install Conda** (Miniconda recommended).  
-2) **Create and activate an environment** (adjust Python version as needed):
+Clone the repository:
 ```bash
-conda create -n fraudml python=3.10 -y
-conda activate fraudml
-Install dependencies (choose what your repo uses):
+git clone https://github.com/Haole3435/Bank_fraud_detection.git
+cd Bank_fraud_detection
+```
 
-bash
-Always show details
+Create the external Docker network:
+```bash
+docker network create Bank_fraud_detection
+```
 
-Copy code
-# If using requirements.txt
-pip install -r requirements.txt
+Set environment variables:  
+Create a `.env.local` file inside the `.envs` folder and define required variables. Refer to `local.yml` for details.
 
-# Or, if using Poetry
-# pip install poetry && poetry install
-Configure environment variables. See Environment Variables.
+Build and start services:
+```bash
+make build
+```
 
-Run your app / notebooks in this environment (e.g., python -m your_module or jupyter lab).
+Run database migrations:
+```bash
+make migrate
+```
 
-Deactivate when finished:
+### Services URLs
+- API: [http://api.localhost](http://api.localhost)  
+- MLflow: [http://mlflow.localhost](http://mlflow.localhost)  
+- RabbitMQ Management: [http://rabbitmq.localhost](http://rabbitmq.localhost)  
+- Flower Dashboard: [http://flower.localhost](http://flower.localhost)  
 
-bash
-Always show details
+## ⚙️ Usage
 
-Copy code
-conda deactivate
-Option B — Local (Docker Compose)
-Build and start services defined in local.yml:
+### Useful Make Commands
+| Command             | Description |
+|---------------------|-------------|
+| `make build`        | Build and start Docker containers for the first time. |
+| `make up`           | Start previously built services. |
+| `make down`         | Stop running containers. |
+| `make down-v`       | Stop and remove volumes (warning: this deletes data). |
+| `make nextgen-config` | View compiled Docker Compose configuration. |
+| `make makemigrations` | Create a new Alembic migration file. |
+| `make migrate`      | Apply the latest database migrations. |
+| `make history`      | View Alembic migration history. |
+| `make psql`         | Access PostgreSQL shell. |
 
-bash
-Always show details
+## 🏗️ System Architecture
+The project follows a microservices architecture managed by Docker Compose:
 
-Copy code
-docker compose -f local.yml up --build
-Stop (and remove) when done:
-
-bash
-Always show details
-
-Copy code
-docker compose -f local.yml down
-Option C — Production Deploy (Remote Server)
-Ensure the remote host is ready (Docker installed, your SSH key authorized).
-
-Export the server IP (required by the script):
-
-bash
-Always show details
-
-Copy code
-export DIGITAL_OCEAN_IP_ADDRESS=YOUR.SERVER.IP
-Run the deploy script from the repo root:
-
-bash
-Always show details
-
-Copy code
-bash deploy.sh
-What the script does: packages the main branch into a tarball, uploads it with rsync to /tmp/project.tar on the server, SSHes in, extracts to a temp dir, brings down existing containers via production.yml, prunes unused Docker artifacts, and brings the new stack up with --build -d --remove-orphans. Temporary artifacts are cleaned up automatically.
-
-Environment Variables
-Create a .env or export variables in your shell. Examples:
-
-dotenv
-Always show details
-
-Copy code
-# Required by deploy.sh
-DIGITAL_OCEAN_IP_ADDRESS=203.0.113.10
-
-# App defaults (examples — adapt to your code)
-APP_PORT=8080
-MODEL_DIR=./models
-DB_URL=postgresql://user:pass@localhost:5432/frauddb
-Compose automatically loads a .env in the working directory. You can also pass env files with --env-file.
-
-API Overview
-Typical endpoints in this project include (adjust to your implementation):
-
-POST /api/v1/score — score a transaction (returns risk score + decision)
-
-POST /api/v1/ml/deploy — deploy a model by ID (manual mode)
-
-POST /api/v1/ml/auto-deploy — pick and deploy the best candidate automatically
-
-GET /api/v1/health — health check
-
-Document any additional routes in your codebase (auth, review workflows, auditing, etc.).
-
-Machine Learning Details
-Hybrid approach: rules for immediate guardrails; Gradient Boosting for ranking nuanced patterns.
-
-Feature set: amount, frequency, velocity, time‑of‑day, merchant history, device/IP reputation (examples — align with your features).
-
-Thresholding: map score to actions (allow, review, block). Persist decisions for auditing and training.
-
-Lifecycle: ingestion → feature extraction → scoring → human review → feedback loop → retraining → (auto)deployment.
-
-Using Postman Safely (Idempotency)
-To avoid duplicate side effects on retries, set a unique Idempotency-Key per request.
-
-Open Postman → Pre-request Script tab.
-
-Paste the contents of postman-prescript.js.
-
-The script generates a UUIDv4 and ensures the Idempotency-Key header is present for each request.
-
-Operations: Retraining & Auto‑Deployment
-Feedback loop: analysts review flagged transactions; confirmed outcomes enrich the training set.
-
-Retraining cadence: retrain periodically or when drift is detected; compare candidates via validation metrics.
-
-Deployment: promote the best model manually or trigger the auto-deploy endpoint.
-
-Troubleshooting
-Permission denied (publickey) during deploy → ensure your SSH key is authorized; ssh user@SERVER_IP should work.
-
-Compose file not found → run commands from the repo root and pass -f local.yml or -f production.yml.
-
-/tmp/project.tar not found on server → network or IP not set; verify DIGITAL_OCEAN_IP_ADDRESS.
-
-Containers won’t rebuild → use --build and consider pruning: docker system prune -af.
-
-Port already in use → adjust APP_PORT or service port mappings in Compose files.
-
-Conda Cheatsheet
-bash
-Always show details
-
-Copy code
-# Create a new env with a specific Python
-conda create -n fraudml python=3.10 -y
-
-# Activate / deactivate
-conda activate fraudml
-conda deactivate
-
-# List / remove envs
-conda env list
-conda remove -n fraudml --all
-
-# Export / reproduce
-conda env export > environment.yml
-conda env create -f environment.yml
+- **Traefik**: Reverse proxy that routes requests to services based on domain names (api.localhost, mlflow.localhost, etc.).  
+- **API**: Main FastAPI service handling business logic.  
+- **PostgreSQL**: Relational database for user and transaction data.  
+- **Redis**: Used as a cache and Celery broker.  
+- **RabbitMQ**: Message broker for asynchronous service communication.  
+- **Celery (Worker & Beat)**: Executes background tasks like email sending and data processing.  
+- **Flower**: Dashboard for monitoring Celery tasks.  
+- **MLflow**: Platform to manage ML lifecycle, including experiment tracking and model deployment.  
+- **Mailpit**: Local SMTP server for capturing outgoing emails in development.  
